@@ -7,21 +7,21 @@ import dash_bootstrap_components as dbc
 
  
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "Student Menu Review App"
+app.title = "Student Courses Review App"
 
  
-menu_df = pd.read_csv('menu_data.csv')
+courses_df = pd.read_csv('./courses_data.csv')
 
  
 app.layout = dbc.Container([
-    html.H1("Menu Review App", className="my-4 text-center"),
+    html.H1("Courses Review App", className="my-4 text-center"),
 
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader(html.H4("Menu")),
+                dbc.CardHeader(html.H4("Courses")),
                 dbc.CardBody([
-                    dcc.Graph(id='menu-graph'),
+                    dcc.Graph(id='courses-graph'),
                 ]),
             ]),
         ], lg=6),
@@ -31,9 +31,9 @@ app.layout = dbc.Container([
                 dbc.CardHeader(html.H4("Student Reviews")),
                 dbc.CardBody([
                     dcc.Dropdown(
-                        id='item-review',
-                        options=[{'label': item, 'value': item} for item in menu_df['Item']],
-                        placeholder='Select an item to review'
+                        id='course-review',
+                        options=[{'label': course, 'value': course} for course in courses_df['Course']],
+                        placeholder='Select an course to review'
                     ),
                     dbc.Input(id='student-name', type='text', placeholder='Your Name', className="my-2"),
                     dbc.Input(id='student-rating', type='number', placeholder='Rating (1-5)', className="my-2"),
@@ -54,67 +54,69 @@ app.layout = dbc.Container([
 
 ], fluid=True)
 
- 
+
+
+
+
 @app.callback(
-    Output('menu-graph', 'figure'),
+    Output('courses-graph', 'figure'),
     Output('insights-graph', 'figure'),
-    Output('item-review', 'value'),   
+    Output('course-review', 'value'),   
     Output('student-name', 'value'),   
     Output('student-rating', 'value'),   
     Output('student-comment', 'value'),   
     Output('validation-message', 'children'),   
     Input('submit-button', 'n_clicks'),
-    State('item-review', 'value'),
+    State('course-review', 'value'),
     State('student-name', 'value'),
     State('student-rating', 'value'),
     State('student-comment', 'value')
 )
-def update_menu_and_insights(n_clicks, item_review, student_name, student_rating, student_comment):
+def update_courses_and_insights(n_clicks, course_review, student_name, student_rating, student_comment):
     validation_message = ''   
 
     if n_clicks is None or n_clicks == 0:
-        return dash.no_update, dash.no_update, item_review, student_name, student_rating, student_comment, validation_message
-
-    if not item_review:
+        courses_fig = px.bar(courses_df, x='Course', y='Average Rating', title='Course Ratings')         
+        insights_fig = px.pie(courses_df, names='Course', values='Average Rating', title='Course Ratings Distribution')
+        return courses_fig, insights_fig
+    
+    if not course_review:
          
-        validation_message = 'Please select a menu item.'
-        return dash.no_update, dash.no_update, item_review, student_name, student_rating, student_comment, validation_message
+        validation_message = 'Please select a courses course.'
+        return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
-    if not student_name:
-         
+    if not student_name:         
         validation_message = 'Please enter your name.'
-        return dash.no_update, dash.no_update, item_review, student_name, student_rating, student_comment, validation_message
+        return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
-    if student_rating is None:
-         
+    if student_rating is None:         
         validation_message = 'Please enter a rating (1-5).'
-        return dash.no_update, dash.no_update, item_review, student_name, student_rating, student_comment, validation_message
+        return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
      
     if not (1 <= student_rating <= 5):
          
         validation_message = 'Rating must be between 1 and 5.'
-        return dash.no_update, dash.no_update, item_review, student_name, student_rating, student_comment, validation_message
+        return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
      
-    item_index = menu_df.index[menu_df['Item'] == item_review].tolist()[0]
-    menu_df.at[item_index, 'Average Rating'] = (menu_df.at[item_index, 'Average Rating'] + student_rating) / 2
+    course_index = courses_df.index[courses_df['Course'] == course_review].tolist()[0]
+    courses_df.at[course_index, 'Average Rating'] = (courses_df.at[course_index, 'Average Rating'] + student_rating) / 2
 
-    menu_df.to_csv('menu_data.csv', index=False)   
+    courses_df.to_csv('courses_data.csv', index=False)   
 
      
-    item_review = ''
+    course_review = ''
     student_name = ''
     student_rating = ''
     student_comment = ''
 
-    menu_fig = px.bar(menu_df, x='Item', y='Average Rating', title='Menu Item Ratings')
+    courses_fig = px.bar(courses_df, x='Course', y='Average Rating', title='Course Ratings')
     
-     
          
-    insights_fig = px.pie(menu_df, names='Item', values='Average Rating', title='Menu Item Ratings Distribution')
+    insights_fig = px.pie(courses_df, names='Course', values='Average Rating', title='Course Ratings Distribution')
 
-    return menu_fig, insights_fig, item_review, student_name, student_rating, student_comment, validation_message
+    return courses_fig, insights_fig, course_review, student_name, student_rating, student_comment, validation_message
 
  
 if __name__ == '__main__':
