@@ -76,9 +76,7 @@ def update_courses_and_insights(n_clicks, course_review, student_name, student_r
     validation_message = ''   
 
     if n_clicks is None or n_clicks == 0:
-        courses_fig = px.bar(courses_df, x='Course', y='Average Rating', title='Course Ratings')         
-        insights_fig = px.pie(courses_df, names='Course', values='Average Rating', title='Course Ratings Distribution')
-        return courses_fig, insights_fig
+        return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
     
     if not course_review:
          
