@@ -4,6 +4,7 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
+from textblob import TextBlob
 
  
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -77,10 +78,10 @@ def update_courses_and_insights(n_clicks, course_review, student_name, student_r
 
     if n_clicks is None or n_clicks == 0:
         return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
-    
+        
     if not course_review:
          
-        validation_message = 'Please select a courses course.'
+        validation_message = 'Please select a course.'
         return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
     if not student_name:         
@@ -97,25 +98,69 @@ def update_courses_and_insights(n_clicks, course_review, student_name, student_r
         validation_message = 'Rating must be between 1 and 5.'
         return dash.no_update, dash.no_update, course_review, student_name, student_rating, student_comment, validation_message
 
-     
     course_index = courses_df.index[courses_df['Course'] == course_review].tolist()[0]
+    sentiment = analyze_sentiment(student_comment)
+    if sentiment == 'Positive':
+        courses_df.at[course_index, 'Num_Positive'] += 1
+    elif sentiment == 'Negative':
+        courses_df.at[course_index, 'Num_Negative'] += 1
+    else:
+        courses_df.at[course_index, 'Num_Neutral'] += 1
+
+
     courses_df.at[course_index, 'Average Rating'] = (courses_df.at[course_index, 'Average Rating'] + student_rating) / 2
+    courses_df.at[course_index, 'Sentiment'] = sentiment  
+
 
     courses_df.to_csv('courses_data.csv', index=False)   
 
+
+    courses_fig = px.bar(courses_df, x='Course', y='Average Rating', title='Course Ratings')
+    sentiment_fig = create_sentiment_bar_chart(courses_df, course_review)
      
     course_review = ''
     student_name = ''
     student_rating = ''
     student_comment = ''
 
-    courses_fig = px.bar(courses_df, x='Course', y='Average Rating', title='Course Ratings')
+    return courses_fig, sentiment_fig, course_review, student_name, student_rating, student_comment, validation_message
+
+def analyze_sentiment(comment):
+    analysis = TextBlob(comment)
+    if analysis.sentiment.polarity > 0:
+        return 'Positive'
+    elif analysis.sentiment.polarity < 0:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+
+def create_sentiment_bar_chart(df, course):
+    course_df = df[df['Course'] == course]
+    # print(course)
     
-         
-    insights_fig = px.pie(courses_df, names='Course', values='Average Rating', title='Course Ratings Distribution')
+    
+    sentiment_counts = {
+        'Sentiment': ['Positive', 'Negative', 'Neutral'],
+        'Count': [
+            course_df['Num_Positive'].values[0],
+            course_df['Num_Negative'].values[0],
+            course_df['Num_Neutral'].values[0]
+        ]
+    }
 
-    return courses_fig, insights_fig, course_review, student_name, student_rating, student_comment, validation_message
+    # print(sentiment_counts)
+    
+    
+    sentiment_fig = px.bar(
+        sentiment_counts,
+        x='Sentiment',
+        y='Count',
+        labels={'x': 'Sentiment', 'y': 'Count'},
+        title=f'Sentiment Analysis for {course}'
+    )
+    
+    return sentiment_fig
 
- 
 if __name__ == '__main__':
     app.run_server(debug=True)
