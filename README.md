@@ -1,7 +1,8 @@
 # Bhaskara-Epoch
 Installation
 ```
-pip install dash pandas plotly dash-bootstrap-components
+pip install dash pandas plotly dash-bootstrap-components textblob
+
 ```
 
 To run
